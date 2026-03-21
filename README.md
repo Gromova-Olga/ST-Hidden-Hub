@@ -4,7 +4,7 @@
 
 Идеально подходит для создания минималистичного вида и глубокого погружения в атмосферные кастомные темы.
 
-<img width="1236" height="1080" alt="изображение" src="https://github.com/user-attachments/assets/db11ad31-350f-4618-a4e4-2d5f02bbc8d4" />
+<img width="1287" height="835" alt="изображение" src="https://github.com/user-attachments/assets/2078c7fb-25a6-46c6-81aa-4e5b9f032dda" />
 
 ## ✨ Основные возможности
 

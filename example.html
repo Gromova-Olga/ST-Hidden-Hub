@@ -1,0 +1,40 @@
+<div class="top-bar-cube-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>🎲 Top Bar Cube</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <p style="color: #aaa; font-size: 0.85em;">
+                Отметь кнопки которые хочешь убрать из топбара и спрятать в кубик.
+            </p>
+
+            <div id="tbc-btn-list">
+                <p><i>Загрузка...</i></p>
+            </div>
+
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;" />
+            <div style="margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;">
+                    <span style="font-size: 0.9em; color: #ccc;">Размер кубика:</span>
+                    <input type="range" id="tbc-size-input" min="30" max="80" step="2" value="52" style="width: 100px;">
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;">
+                    <span style="font-size: 0.9em; color: #ccc;">Значок (эмодзи/текст):</span>
+                    <input type="text" id="tbc-icon-input" value="🎲" style="width: 60px; text-align: center; background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <span style="font-size: 0.9em; color: #ccc;">Цвет кубика:</span>
+                    <input type="color" id="tbc-color-input" value="#b478ff" style="background: none; border: none; cursor: pointer;">
+                </label>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <input id="tbc-sniper-btn" class="menu_button" type="button" value="🎯 Поймать элемент" />
+                <input id="tbc-reset-btn" class="menu_button" type="submit" value="🔄 Сбросить всё" />
+                <input id="tbc-refresh-btn" class="menu_button" type="submit" value="🔃 Обновить список" />
+            </div>
+            <span style="color: #888; font-size: 0.8em;">Обновить — если кнопки расширений не появились в списке</span>
+            </div>
+        </div>
+    </div>
+</div>

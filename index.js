@@ -268,7 +268,9 @@ function createCube() {
 
     let dragging = false;
     let didDrag = false;
+    let dragStartTime = 0;
     let offsetX = 0, offsetY = 0;
+    let startX = 0, startY = 0;
 
     // Функция для получения координат из события (мышь или тач)
     function getClientCoords(e) {
@@ -295,17 +297,20 @@ function createCube() {
         if (e.type === 'touchstart') {
             const touch = e.touches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (target && target.closest && target.closest('button, .tbc-panel-btn, .menu_button')) {
+            if (target && target.closest && target.closest('button, .tbc-panel-btn, .menu_button, input, select')) {
                 return;
             }
         }
         
         dragging = true;
         didDrag = false;
+        dragStartTime = Date.now();
         
         const coords = getClientCoords(e);
-        offsetX = coords.clientX - parseInt(cube.css("left"));
-        offsetY = coords.clientY - parseInt(cube.css("top"));
+        startX = coords.clientX;
+        startY = coords.clientY;
+        offsetX = startX - parseInt(cube.css("left"));
+        offsetY = startY - parseInt(cube.css("top"));
         
         cube.addClass("tbc-dragging");
         
@@ -320,76 +325,95 @@ function createCube() {
     function onDragMove(e) {
         if (!dragging) return;
         
-        didDrag = true;
         const coords = getClientCoords(e);
-        const cw = cube.outerWidth(), ch = cube.outerHeight();
-        const pos = clampToScreen(coords.clientX - offsetX, coords.clientY - offsetY, cw, ch);
+        const deltaX = Math.abs(coords.clientX - startX);
+        const deltaY = Math.abs(coords.clientY - startY);
         
-        cube.css({ left: pos.x, top: pos.y });
-        panel.css({ left: pos.x, top: pos.y + ch + 6 });
+        // Если переместились больше чем на 5 пикселей - считаем что это перетаскивание
+        if (deltaX > 5 || deltaY > 5) {
+            didDrag = true;
+        }
+        
+        if (didDrag) {
+            const cw = cube.outerWidth(), ch = cube.outerHeight();
+            const pos = clampToScreen(coords.clientX - offsetX, coords.clientY - offsetY, cw, ch);
+            
+            cube.css({ left: pos.x, top: pos.y });
+            panel.css({ left: pos.x, top: pos.y + ch + 6 });
+        }
         
         // Предотвращаем скролл во время перетаскивания
-        if (e.type === 'touchmove') {
+        if (e.type === 'touchmove' && didDrag) {
             e.preventDefault();
         }
     }
 
     // Обработчик окончания перетаскивания
-    function onDragEnd() {
+    function onDragEnd(e) {
         if (!dragging) return;
         
         dragging = false;
         cube.removeClass("tbc-dragging");
         setDraggingActive(false);
         
+        // Если было перетаскивание - сохраняем позицию
         if (didDrag) {
             savePosition(parseInt(cube.css("left")), parseInt(cube.css("top")));
         }
-        didDrag = false;
+        
+        // Небольшая задержка перед сбросом флага, чтобы клик не сработал сразу после перетаскивания
+        setTimeout(() => {
+            didDrag = false;
+        }, 100);
+    }
+
+    // Обработчик клика (открытие панели)
+    function onCubeClick(e) {
+        // Если было перетаскивание - игнорируем клик
+        if (didDrag) {
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+        
+        // Для touch-событий проверяем, не было ли долгого нажатия
+        const pressDuration = Date.now() - dragStartTime;
+        if (pressDuration > 200) {
+            return;
+        }
+        
+        const isOpen = cube.hasClass("tbc-open");
+        cube.toggleClass("tbc-open", !isOpen);
+        panel.toggleClass("tbc-panel-open", !isOpen);
+        if (!isOpen) renderCubePanel();
     }
 
     // Mouse events
     cube.on("mousedown", onDragStart);
     $(document).on("mousemove.tbc", onDragMove);
     $(document).on("mouseup.tbc", onDragEnd);
+    cube.on("click", onCubeClick);
     
     // Touch events для мобильных
     cube.on("touchstart", onDragStart);
     $(document).on("touchmove.tbc", onDragMove);
     $(document).on("touchend.tbc", onDragEnd);
     $(document).on("touchcancel.tbc", onDragEnd);
-
-    // Обработчик клика (открытие панели) с проверкой что это не было перетаскиванием
-    cube.on("click", function (e) {
-        if (didDrag) {
-            didDrag = false;
-            return;
-        }
-        const isOpen = cube.hasClass("tbc-open");
-        cube.toggleClass("tbc-open", !isOpen);
-        panel.toggleClass("tbc-panel-open", !isOpen);
-        if (!isOpen) renderCubePanel();
-    });
+    cube.on("touchend", onCubeClick);
 
     // Закрытие панели при клике вне
-    $(document).on("click.tbc-outside", function (e) {
-        if (!$(e.target).closest("#tbc-cube, #tbc-panel").length) {
+    function closePanel(e) {
+        const $target = $(e.target);
+        if (!$target.closest("#tbc-cube, #tbc-panel").length) {
             setTimeout(() => {
                 cube.removeClass("tbc-open");
                 panel.removeClass("tbc-panel-open");
             }, 150);
         }
-    });
+    }
     
-    // Обработка touch-событий для закрытия панели
-    $(document).on("touchstart.tbc-outside", function (e) {
-        if (!$(e.target).closest("#tbc-cube, #tbc-panel").length) {
-            setTimeout(() => {
-                cube.removeClass("tbc-open");
-                panel.removeClass("tbc-panel-open");
-            }, 150);
-        }
-    });
+    $(document).on("click.tbc-outside", closePanel);
+    $(document).on("touchstart.tbc-outside", closePanel);
 
     cube.on("contextmenu", function (e) {
         e.preventDefault(); 
@@ -399,7 +423,6 @@ function createCube() {
     applyHiddenState();
     console.log(`[${extensionName}] 🎲 Cube created`);
 }
-
 let sniperMode = false;
 
 function toggleSniperMode() {

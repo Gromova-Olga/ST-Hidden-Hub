@@ -177,3 +177,27 @@ body.tbc-dragging-active {
         font-size: calc(var(--tbc-size) * 0.5);
     }
 }
+
+/* Улучшенная поддержка touch на мобильных */
+@media (max-width: 768px) {
+    #tbc-cube {
+        touch-action: manipulation; /* Улучшает обработку touch-событий */
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent; /* Убирает серый фон при тапе */
+    }
+    
+    /* Увеличиваем область нажатия */
+    #tbc-cube::after {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        right: -10px;
+        bottom: -10px;
+    }
+}
+
+body.tbc-dragging-active {
+    touch-action: none;
+    user-select: none;
+}

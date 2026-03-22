@@ -260,7 +260,8 @@ function createCube() {
 
     $("body").append(cube).append(panel);
 
-    const w = 52, h = 52;
+    const w = s.cubeSize || 52;
+    const h = s.cubeSize || 52;
     const pos = clampToScreen(s.cubeX, s.cubeY, w, h);
     cube.css({ left: pos.x, top: pos.y });
     panel.css({ left: pos.x, top: pos.y + h + 6 });
@@ -269,43 +270,119 @@ function createCube() {
     let didDrag = false;
     let offsetX = 0, offsetY = 0;
 
-    cube.on("mousedown", function (e) {
-        if (e.button !== 0) return; // Игнорируем правый клик при перетаскивании
+    // Функция для получения координат из события (мышь или тач)
+    function getClientCoords(e) {
+        const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
+        const clientY = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
+        return { clientX, clientY };
+    }
+
+    // Функция для блокировки скролла на мобильных
+    function setDraggingActive(active) {
+        if (active) {
+            document.body.classList.add('tbc-dragging-active');
+        } else {
+            document.body.classList.remove('tbc-dragging-active');
+        }
+    }
+
+    // Обработчик начала перетаскивания
+    function onDragStart(e) {
+        // Игнорируем правую кнопку мыши
+        if (e.button === 2) return;
+        
+        // Для touch-событий проверяем, не кликнули ли по интерактивному элементу
+        if (e.type === 'touchstart') {
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.closest && target.closest('button, .tbc-panel-btn, .menu_button')) {
+                return;
+            }
+        }
+        
         dragging = true;
         didDrag = false;
-        offsetX = e.clientX - parseInt(cube.css("left"));
-        offsetY = e.clientY - parseInt(cube.css("top"));
+        
+        const coords = getClientCoords(e);
+        offsetX = coords.clientX - parseInt(cube.css("left"));
+        offsetY = coords.clientY - parseInt(cube.css("top"));
+        
         cube.addClass("tbc-dragging");
-        e.preventDefault();
-    });
+        
+        // Блокируем скролл на мобильных
+        if (e.type === 'touchstart') {
+            setDraggingActive(true);
+            e.preventDefault();
+        }
+    }
 
-    $(document).on("mousemove.tbc", function (e) {
+    // Обработчик перемещения
+    function onDragMove(e) {
         if (!dragging) return;
+        
         didDrag = true;
+        const coords = getClientCoords(e);
         const cw = cube.outerWidth(), ch = cube.outerHeight();
-        const pos = clampToScreen(e.clientX - offsetX, e.clientY - offsetY, cw, ch);
+        const pos = clampToScreen(coords.clientX - offsetX, coords.clientY - offsetY, cw, ch);
+        
         cube.css({ left: pos.x, top: pos.y });
         panel.css({ left: pos.x, top: pos.y + ch + 6 });
-    });
+        
+        // Предотвращаем скролл во время перетаскивания
+        if (e.type === 'touchmove') {
+            e.preventDefault();
+        }
+    }
 
-    $(document).on("mouseup.tbc", function () {
+    // Обработчик окончания перетаскивания
+    function onDragEnd() {
         if (!dragging) return;
+        
         dragging = false;
         cube.removeClass("tbc-dragging");
+        setDraggingActive(false);
+        
         if (didDrag) {
             savePosition(parseInt(cube.css("left")), parseInt(cube.css("top")));
         }
-    });
+        didDrag = false;
+    }
 
-    cube.on("click", function () {
-        if (didDrag) return;
+    // Mouse events
+    cube.on("mousedown", onDragStart);
+    $(document).on("mousemove.tbc", onDragMove);
+    $(document).on("mouseup.tbc", onDragEnd);
+    
+    // Touch events для мобильных
+    cube.on("touchstart", onDragStart);
+    $(document).on("touchmove.tbc", onDragMove);
+    $(document).on("touchend.tbc", onDragEnd);
+    $(document).on("touchcancel.tbc", onDragEnd);
+
+    // Обработчик клика (открытие панели) с проверкой что это не было перетаскиванием
+    cube.on("click", function (e) {
+        if (didDrag) {
+            didDrag = false;
+            return;
+        }
         const isOpen = cube.hasClass("tbc-open");
         cube.toggleClass("tbc-open", !isOpen);
         panel.toggleClass("tbc-panel-open", !isOpen);
         if (!isOpen) renderCubePanel();
     });
 
+    // Закрытие панели при клике вне
     $(document).on("click.tbc-outside", function (e) {
+        if (!$(e.target).closest("#tbc-cube, #tbc-panel").length) {
+            setTimeout(() => {
+                cube.removeClass("tbc-open");
+                panel.removeClass("tbc-panel-open");
+            }, 150);
+        }
+    });
+    
+    // Обработка touch-событий для закрытия панели
+    $(document).on("touchstart.tbc-outside", function (e) {
         if (!$(e.target).closest("#tbc-cube, #tbc-panel").length) {
             setTimeout(() => {
                 cube.removeClass("tbc-open");
@@ -338,44 +415,62 @@ function toggleSniperMode() {
     }).on("mouseout.tbc_sniper", function(e) {
         $(e.target).css("outline", "");
     });
+    
+    // Добавляем поддержку touch для режима охоты
+    $(document).on("touchstart.tbc_sniper", function(e) {
+        if ($(e.target).closest('#tbc-cube, #tbc-panel, #extensions_settings2').length) return;
+        
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            $(target).css("outline", "");
+            captureFloatingElement(target);
+        }
+    });
 
     $(document).on("click.tbc_sniper", function(e) {
         if ($(e.target).closest('#tbc-cube, #tbc-panel, #extensions_settings2').length) return;
         
         e.preventDefault();
         e.stopPropagation();
-        
-        const target = $(e.target).closest('[id]')[0] || e.target;
-        const selector = target.id ? `#${target.id}` : null;
-        
-        $(target).css("outline", ""); 
-
-        if (!selector) {
-            toastr.warning("Не удалось поймать элемент (у него нет ID).", "Top Bar Cube");
-            stopSniperMode();
-            return;
-        }
-
-        const s = extension_settings[extensionName];
-        if (!s.hiddenFloating) s.hiddenFloating = [];
-        
-        if (!s.hiddenFloating.find(item => item.selector === selector)) {
-            s.hiddenFloating.push({
-                selector: selector,
-                title: target.title || target.id
-            });
-            saveSettingsDebounced();
-        }
-        
-        $(target).addClass('tbc-hidden-btn');
-        renderCubePanel(); 
-        toastr.success("Элемент спрятан в кубик!", "Успех");
-        stopSniperMode();
+        captureFloatingElement(e.target);
     });
 
     $(document).on("keydown.tbc_sniper", function(e) {
         if (e.key === "Escape") stopSniperMode();
     });
+}
+
+function captureFloatingElement(target) {
+    const targetEl = $(target).closest('[id]')[0] || target;
+    const selector = targetEl.id ? `#${targetEl.id}` : null;
+    
+    $(targetEl).css("outline", "");
+
+    if (!selector) {
+        toastr.warning("Не удалось поймать элемент (у него нет ID).", "Top Bar Cube");
+        stopSniperMode();
+        return;
+    }
+
+    const s = extension_settings[extensionName];
+    if (!s.hiddenFloating) s.hiddenFloating = [];
+    
+    if (!s.hiddenFloating.find(item => item.selector === selector)) {
+        s.hiddenFloating.push({
+            selector: selector,
+            title: targetEl.title || targetEl.id
+        });
+        saveSettingsDebounced();
+    }
+    
+    $(targetEl).addClass('tbc-hidden-btn');
+    renderCubePanel(); 
+    toastr.success("Элемент спрятан в кубик!", "Успех");
+    stopSniperMode();
 }
 
 function stopSniperMode() {

@@ -201,3 +201,35 @@ body.tbc-dragging-active {
     touch-action: none;
     user-select: none;
 }
+
+/* Улучшенная поддержка touch на мобильных */
+@media (max-width: 768px) {
+    #tbc-cube {
+        touch-action: manipulation; /* Улучшает обработку touch-событий */
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent; /* Убирает серый фон при тапе */
+        position: fixed;
+        z-index: 10000; /* Убедимся что кубик поверх остальных */
+    }
+    
+    /* Увеличиваем область нажатия для удобства */
+    #tbc-cube::after {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+    }
+}
+
+body.tbc-dragging-active {
+    touch-action: none;
+    user-select: none;
+}
+
+/* Предотвращаем случайные выделения */
+#tbc-cube {
+    user-select: none;
+    -webkit-user-select: none;
+}
